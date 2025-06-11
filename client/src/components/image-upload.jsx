@@ -48,7 +48,7 @@ function ImageUpload({
 
     try {
       const response = await axios.post(
-        `http://localhost:5000/api/home/products/image-upload`,
+        `${import.meta.env.VITE_API_URL}/api/home/products/image-upload`,
         data
       );
 

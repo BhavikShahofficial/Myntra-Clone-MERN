@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
@@ -11,15 +13,13 @@ const PORT = process.env.PORT || 5000;
 
 const app = express();
 mongoose
-  .connect(
-    "mongodb+srv://bhavikshahofficial:Bhavik@cluster0.g5n5i9t.mongodb.net/"
-  )
+  .connect(process.env.MONGO_URL)
   .then(() => console.log("Mongodb Connected"))
   .catch((error) => console.log(error));
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: process.env.CLIENT_BASE_URL,
     methods: ["GET", "POST", "DELETE", "PUT"],
     allowedHeaders: [
       "Content-Type",

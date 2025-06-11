@@ -12,7 +12,7 @@ const EditProductPage = () => {
     const fetchProductById = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:5000/api/home/products/get/${id}`
+          `${import.meta.env.VITE_API_URL}/api/home/products/get/${id}`
         );
         setProduct(response.data.data); // assumes `{ data: product }`
       } catch (error) {

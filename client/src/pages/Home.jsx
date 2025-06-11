@@ -47,7 +47,7 @@ const Home = () => {
         return;
       }
 
-      await axios.post("http://localhost:5000/api/shop/cart/add", {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/shop/cart/add`, {
         userId,
         productId,
         quantity: 1,

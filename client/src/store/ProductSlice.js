@@ -15,7 +15,7 @@ export const addNewProducts = createAsyncThunk(
       if (!token) throw new Error("No token found");
 
       const response = await axios.post(
-        "http://localhost:5000/api/home/products/add",
+        `${import.meta.env.VITE_API_URL}/api/home/products/add`,
         productData,
         {
           headers: {
@@ -36,7 +36,7 @@ export const fetchAllProducts = createAsyncThunk(
   "product/fetchAllProducts",
   async () => {
     const result = await axios.get(
-      `http://localhost:5000/api/home/products/get`
+      `${import.meta.env.VITE_API_URL}/api/home/products/get`
     );
     return result.data;
   }
@@ -58,7 +58,7 @@ export const editProduct = createAsyncThunk(
       };
 
       const result = await axios.put(
-        `http://localhost:5000/api/home/products/edit/${id}`,
+        `${import.meta.env.VITE_API_URL}/api/home/products/edit/${id}`,
         payload,
         {
           headers: {
@@ -79,7 +79,7 @@ export const deleteProduct = createAsyncThunk(
   "product/deleteProduct",
   async (id) => {
     const result = await axios.delete(
-      `http://localhost:5000/api/home/products/delete/${id}`
+      `${import.meta.env.VITE_API_URL}/api/home/products/delete/${id}`
     );
     return result.data;
   }
@@ -89,7 +89,7 @@ export const fetchProductById = createAsyncThunk(
   "product/fetchProductById",
   async (id) => {
     const res = await axios.get(
-      `http://localhost:5000/api/home/products/get/${id}`
+      `${import.meta.env.VITE_API_URL}/api/home/products/get/${id}`
     );
     return res.data; // Adjust if the API shape differs
   }
