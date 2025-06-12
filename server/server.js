@@ -9,7 +9,7 @@ const authRouter = require("./routes/auth-routes");
 const productsRouter = require("./routes/product-routes");
 const cartRouter = require("./routes/cart-routes");
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 
 const app = express();
 mongoose

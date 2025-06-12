@@ -41,7 +41,14 @@ function App() {
             </PrivateRoute>
           }
         />
-        <Route path="checkout" element={<CheckoutPage />} />
+        <Route
+          path="checkout"
+          element={
+            <PrivateRoute>
+              <CheckoutPage />
+            </PrivateRoute>
+          }
+        />
       </Route>
 
       {/* Auth Routes */}

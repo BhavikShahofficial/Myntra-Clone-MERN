@@ -13,31 +13,36 @@ const CheckoutPage = () => {
 
   useEffect(() => {
     const storedUser = sessionStorage.getItem("user");
-    if (storedUser) {
+    const token = sessionStorage.getItem("token");
+
+    if (storedUser && token) {
       const user = JSON.parse(storedUser);
       if (user.id) {
-        dispatch(fetchCartItems(user.id));
+        dispatch(fetchCartItems({ userId: user.id, token }));
       } else {
         console.warn("User ID not found in session user object.");
       }
     } else {
-      console.error("No user data in sessionStorage.");
+      console.error("User or token missing from sessionStorage.");
     }
   }, [dispatch]);
 
   const handleQuantityChange = (productId, quantity) => {
     const storedUser = JSON.parse(sessionStorage.getItem("user"));
-    if (!storedUser?.id) return;
-    if (quantity < 1) return;
+    const token = sessionStorage.getItem("token");
+    if (!storedUser?.id || !token || quantity < 1) return;
+
     dispatch(
-      updateCartQuantity({ userId: storedUser.id, productId, quantity })
+      updateCartQuantity({ userId: storedUser.id, productId, quantity, token })
     );
   };
 
   const handleDeleteItem = (productId) => {
     const storedUser = JSON.parse(sessionStorage.getItem("user"));
-    if (!storedUser?.id) return;
-    dispatch(deleteCartItem({ userId: storedUser.id, productId }));
+    const token = sessionStorage.getItem("token");
+    if (!storedUser?.id || !token) return;
+
+    dispatch(deleteCartItem({ userId: storedUser.id, productId, token }));
   };
 
   const totalMRP = bag.reduce(
