@@ -6,12 +6,26 @@ const initialState = {
   productList: [],
   currentProduct: null,
 };
+
+// ✅ Improved token retrieval
+const getValidToken = (getState) => {
+  const stateToken = getState().auth.token;
+  let sessionToken = null;
+
+  try {
+    sessionToken = JSON.parse(sessionStorage.getItem("token"));
+  } catch {
+    sessionToken = sessionStorage.getItem("token");
+  }
+
+  return stateToken || sessionToken || null;
+};
+
 export const addNewProducts = createAsyncThunk(
   "products/addNewProducts",
   async (productData, { getState, rejectWithValue }) => {
     try {
-      const token =
-        getState().auth.token || JSON.parse(sessionStorage.getItem("token"));
+      const token = getValidToken(getState);
       if (!token) throw new Error("No token found");
 
       const response = await axios.post(
@@ -41,21 +55,16 @@ export const fetchAllProducts = createAsyncThunk(
     return result.data;
   }
 );
+
 export const editProduct = createAsyncThunk(
   "product/editProduct",
   async ({ id, formData }, { getState, rejectWithValue }) => {
     try {
-      const state = getState();
-      const token =
-        state.auth.token || JSON.parse(sessionStorage.getItem("token"));
+      const token = getValidToken(getState);
       if (!token) throw new Error("No token found");
 
-      const owner = state.auth.user?.id;
-
-      const payload = {
-        ...formData,
-        owner,
-      };
+      const owner = getState().auth.user?.id;
+      const payload = { ...formData, owner };
 
       const result = await axios.put(
         `${import.meta.env.VITE_API_URL}/api/home/products/edit/${id}`,
@@ -77,11 +86,24 @@ export const editProduct = createAsyncThunk(
 
 export const deleteProduct = createAsyncThunk(
   "product/deleteProduct",
-  async (id) => {
-    const result = await axios.delete(
-      `${import.meta.env.VITE_API_URL}/api/home/products/delete/${id}`
-    );
-    return result.data;
+  async (id, { getState, rejectWithValue }) => {
+    try {
+      const token = getValidToken(getState);
+      if (!token) throw new Error("No token found");
+
+      const result = await axios.delete(
+        `${import.meta.env.VITE_API_URL}/api/home/products/delete/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return result.data;
+    } catch (err) {
+      console.error("Delete Product Error:", err);
+      return rejectWithValue(err.response?.data || { message: err.message });
+    }
   }
 );
 
@@ -91,7 +113,7 @@ export const fetchProductById = createAsyncThunk(
     const res = await axios.get(
       `${import.meta.env.VITE_API_URL}/api/home/products/get/${id}`
     );
-    return res.data; // Adjust if the API shape differs
+    return res.data;
   }
 );
 
@@ -109,7 +131,7 @@ const productSlice = createSlice({
         state.isLoading = false;
         state.productList = action.payload.data;
       })
-      .addCase(fetchAllProducts.rejected, (state, action) => {
+      .addCase(fetchAllProducts.rejected, (state) => {
         state.isLoading = false;
         state.productList = [];
       })

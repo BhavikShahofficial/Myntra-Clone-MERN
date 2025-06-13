@@ -41,17 +41,27 @@ const Home = () => {
   const handleAddToCart = async (productId) => {
     try {
       const userId = user?.id;
+      const token = sessionStorage.getItem("token");
 
-      if (!userId) {
+      if (!userId || !token) {
         toast.error("Please login to add items to cart");
         return;
       }
 
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/shop/cart/add`, {
-        userId,
-        productId,
-        quantity: 1,
-      });
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/shop/cart/add`,
+        {
+          userId,
+          productId,
+          quantity: 1,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          withCredentials: true,
+        }
+      );
 
       toast.success("Added to cart!");
       navigate("/checkout");

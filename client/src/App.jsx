@@ -6,33 +6,45 @@ import AuthLayout from "./components/auth/Layout";
 import Register from "./pages/auth/Register";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
-import { checkAuth } from "./store/authSlice";
+import { checkAuth, setUser } from "./store/authSlice";
 import ShopLayout from "./components/layout";
 import AddProductForm from "./components/AddProductsForm";
 import EditProductPage from "./components/EditProductPage";
-import PrivateRoute from "./components/common/auth"; // Import the PrivateRoute
+import PrivateRoute from "./components/common/auth";
 import CheckoutPage from "./pages/Checkout";
 
 function App() {
-  const { isAuthenticated, user, isLoading } = useSelector(
+  const { isAuthenticated, user, isLoading, token } = useSelector(
     (state) => state.auth
   );
   const dispatch = useDispatch();
 
   useEffect(() => {
-    dispatch(checkAuth());
+    const token = sessionStorage.getItem("token");
+    const user = JSON.parse(sessionStorage.getItem("user"));
+
+    if (token && user) {
+      dispatch(setUser({ token, user }));
+      dispatch(checkAuth());
+    }
   }, [dispatch]);
 
-  // if (isLoading) {
-  //   return <div>Loading...</div>; // Optionally add a loading state for the first time auth check
-  // }
-
+  if (isLoading) {
+    return <div>Loading...</div>; // or a spinner
+  }
   return (
     <Routes>
       <Route path="/" element={<ShopLayout />}>
         <Route index element={<Home />} />
         <Route path="home" element={<Home />} />
-        <Route path="edit-product/:id" element={<EditProductPage />} />
+        <Route
+          path="edit-product/:id"
+          element={
+            <PrivateRoute>
+              <EditProductPage />
+            </PrivateRoute>
+          }
+        />
         <Route
           path="add-product"
           element={
@@ -53,7 +65,6 @@ function App() {
 
       {/* Auth Routes */}
       <Route path="/auth" element={<AuthLayout />}>
-        {/* Redirect to home if already authenticated */}
         <Route
           path="login"
           element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}

@@ -1,11 +1,19 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 
+const getStoredUser = () => {
+  try {
+    return JSON.parse(sessionStorage.getItem("user"));
+  } catch {
+    return null;
+  }
+};
+
 const initialState = {
-  isAuthenticated: false,
+  isAuthenticated: !!sessionStorage.getItem("token"),
   isLoading: false,
-  user: null,
-  token: null,
+  user: getStoredUser(),
+  token: sessionStorage.getItem("token") || null,
 };
 
 export const registerUser = createAsyncThunk(
@@ -14,65 +22,78 @@ export const registerUser = createAsyncThunk(
     const response = await axios.post(
       `${import.meta.env.VITE_API_URL}/api/auth/register`,
       formData,
-      {
-        withCredentials: true,
-      }
+      { withCredentials: true }
     );
     return response.data;
   }
 );
-export const loginUser = createAsyncThunk("/auth/login", async (formData) => {
-  const response = await axios.post(
-    `${import.meta.env.VITE_API_URL}/api/auth/login`,
-    formData,
-    {
-      withCredentials: true,
-    }
-  );
 
-  return response.data;
-});
+export const loginUser = createAsyncThunk(
+  "/auth/login",
+  async (formData, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/auth/login`,
+        formData,
+        { withCredentials: true }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Login failed");
+    }
+  }
+);
 
 export const logoutUser = createAsyncThunk("/auth/logout", async () => {
   const response = await axios.post(
     `${import.meta.env.VITE_API_URL}/api/auth/logout`,
     {},
-    {
-      withCredentials: true,
-    }
+    { withCredentials: true }
   );
   return response.data;
 });
 
-export const checkAuth = createAsyncThunk("/auth/checkauth", async () => {
-  const token = JSON.parse(sessionStorage.getItem("token"));
-  if (!token) throw new Error("No token found");
+export const checkAuth = createAsyncThunk(
+  "/auth/checkauth",
+  async (_, { getState, rejectWithValue }) => {
+    const token = getState().auth.token || sessionStorage.getItem("token");
+    if (!token) return rejectWithValue("No token found");
 
-  const response = await axios.get(
-    `${import.meta.env.VITE_API_URL}/api/auth/check-auth`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Cache-Control":
-          "no-store, no-cache, must-revalidate, proxy-revalidate",
-      },
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/auth/check-auth`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Unauthorized");
     }
-  );
-  return response.data;
-});
+  }
+);
 
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
     setUser: (state, action) => {
-      state.user = action.payload;
-      // state.isAuthenticated = !!action.payload;
+      const { token, user } = action.payload;
+      state.token = token;
+      state.user = user;
+      state.isAuthenticated = true;
+
+      sessionStorage.setItem("token", token);
+      sessionStorage.setItem("user", JSON.stringify(user));
     },
     resetTokenAndCredentials: (state) => {
-      state.user = null;
       state.token = null;
+      state.user = null;
       state.isAuthenticated = false;
+
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
     },
   },
   extraReducers: (builder) => {
@@ -80,40 +101,43 @@ const authSlice = createSlice({
       .addCase(registerUser.pending, (state) => {
         state.isLoading = true;
       })
-      .addCase(registerUser.fulfilled, (state, action) => {
+      .addCase(registerUser.fulfilled, (state) => {
         state.isLoading = false;
         state.isAuthenticated = false;
         state.user = null;
-        // state.token = action.payload.token;
-        // sessionStorage.setItem("token", JSON.stringify(action.payload.token));
       })
       .addCase(registerUser.rejected, (state) => {
         state.isLoading = false;
-        state.isAuthenticated = false;
-        state.user = null;
       })
       .addCase(loginUser.pending, (state) => {
         state.isLoading = true;
       })
       .addCase(loginUser.fulfilled, (state, action) => {
-        console.log("User payload during login:", action.payload.user);
+        const { token, user, success = true } = action.payload;
+
         state.isLoading = false;
-        state.isAuthenticated = action.payload.success;
-        state.user = action.payload.success ? action.payload.user : null;
-        state.token = action.payload.token;
-        sessionStorage.setItem("token", JSON.stringify(action.payload.token));
-        sessionStorage.setItem("user", JSON.stringify(action.payload.user));
-      })
-      .addCase(logoutUser.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.isAuthenticated = false;
-        state.user = null;
-        // sessionStorage.removeItem("token");
+        state.isAuthenticated = success;
+        state.user = success ? user : null;
+        state.token = token;
+
+        if (token && user) {
+          sessionStorage.setItem("token", token);
+          sessionStorage.setItem("user", JSON.stringify(user));
+        }
       })
       .addCase(loginUser.rejected, (state) => {
         state.isLoading = false;
         state.isAuthenticated = false;
         state.user = null;
+        state.token = null;
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.isLoading = false;
+        state.isAuthenticated = false;
+        state.user = null;
+        state.token = null;
+        sessionStorage.removeItem("token");
+        sessionStorage.removeItem("user");
       })
       .addCase(checkAuth.pending, (state) => {
         state.isLoading = true;
@@ -124,15 +148,21 @@ const authSlice = createSlice({
         state.user = action.payload.success ? action.payload.user : null;
 
         if (action.payload.success) {
-          sessionStorage.setItem("token", JSON.stringify(action.payload.token));
+          sessionStorage.setItem("token", action.payload.token);
           sessionStorage.setItem("user", JSON.stringify(action.payload.user));
           state.token = action.payload.token;
         }
       })
-      .addCase(checkAuth.rejected, (state) => {
+      .addCase(checkAuth.rejected, (state, action) => {
         state.isLoading = false;
-        state.isAuthenticated = false;
-        state.user = null;
+
+        if (action.payload === "Unauthorized") {
+          state.isAuthenticated = false;
+          state.user = null;
+          state.token = null;
+          sessionStorage.removeItem("token");
+          sessionStorage.removeItem("user");
+        }
       });
   },
 });

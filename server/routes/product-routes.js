@@ -13,8 +13,8 @@ const { upload } = require("../helper/cloudinary");
 
 router.post("/image-upload", upload.single("my_file"), handleImageUpload);
 router.get("/get", fetchProduct);
-router.post("/add", authMiddleware, addProduct);
-router.put("/edit/:id", authMiddleware, editProduct);
+router.post("/add", addProduct);
+router.put("/edit/:id", editProduct);
 router.delete("/delete/:id", deleteProduct);
 router.get("/get/:id", fetchProductById);
 

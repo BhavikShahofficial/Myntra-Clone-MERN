@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Dropdown } from "react-bootstrap";
 import { useState } from "react";
 import { FaBars, FaSearch } from "react-icons/fa";
-import { logoutUser } from "../store/authSlice";
+import { logoutUser, resetTokenAndCredentials } from "../store/authSlice";
 import toast from "react-hot-toast";
 
 const Header = () => {
@@ -18,7 +18,9 @@ const Header = () => {
   const location = useLocation();
 
   function handleLogout() {
-    dispatch(logoutUser());
+    // dispatch(logoutUser());
+    dispatch(resetTokenAndCredentials());
+    sessionStorage.clear();
     toast.success("Logged out successfully");
     navigate(location.pathname, { replace: true });
   }
